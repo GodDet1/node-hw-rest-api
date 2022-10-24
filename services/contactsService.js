@@ -1,6 +1,6 @@
 const { Contact } = require('../db/contacts');
 
-const getContacts = async () => await Contact.find({});
+const getContacts = async owner => await Contact.find({ owner });
 
 const getContactById = async contactId => await Contact.find({ _id: contactId });
 

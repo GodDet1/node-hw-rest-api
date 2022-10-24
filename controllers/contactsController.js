@@ -1,8 +1,11 @@
 const { RequestError } = require('../helpers');
 const { contactsServices } = require('../services');
 
-const getContactsListController = async (req, res, next) =>
-  res.json(await contactsServices.getContacts());
+const getContactsListController = async (req, res, next) => {
+  const { _id: owner } = req.user;
+
+  res.json(await contactsServices.getContacts(owner));
+};
 
 const getContactByIdController = async (req, res, next) => {
   const id = req.params.contactId;
@@ -18,6 +21,7 @@ const getContactByIdController = async (req, res, next) => {
 
 const addContactController = async (req, res, next) => {
   const newContactData = req.body;
+  const { _id: owner } = req.user;
   const { name, email, phone } = newContactData;
 
   switch (true) {
@@ -34,7 +38,7 @@ const addContactController = async (req, res, next) => {
       break;
   }
 
-  const addedContact = await contactsServices.addContact(newContactData);
+  const addedContact = await contactsServices.addContact({ ...newContactData, owner });
 
   return res.json({ addedContact }).status(201);
 };
