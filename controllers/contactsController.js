@@ -4,7 +4,7 @@ const { contactsServices } = require('../services');
 const getContactsListController = async (req, res, next) => {
   const { _id: owner } = req.user;
 
-  res.json(await contactsServices.getContacts(owner));
+  return res.json(await contactsServices.getContacts(owner));
 };
 
 const getContactByIdController = async (req, res, next) => {
