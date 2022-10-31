@@ -4,6 +4,7 @@ const { RequestError } = require('../helpers');
 const { authService } = require('../services');
 const { getIdFromAuth } = require('../helpers');
 const { saveToken, getUserById } = require('../services/authService');
+const gravatar = require('gravatar');
 
 const saltRounds = process.env.SALT_ROUNDS;
 const secretJWT = process.env.SECRET_JWT;
@@ -11,13 +12,15 @@ const secretJWT = process.env.SECRET_JWT;
 const ctrlSingup = async (req, res) => {
   const { email, password } = req.body;
 
+  const avatarURL = gravatar.url(email);
   const hashedPassword = await bcrypt.hash(password, +saltRounds);
   const { subscription } = await authService.saveUser({
     email,
+    avatarURL,
     password: hashedPassword,
   });
 
-  res.status(201).json({ user: { email, subscription } });
+  res.status(201).json({ user: { email, subscription, avatarURL } });
 };
 
 const ctrlLogin = async (req, res) => {
