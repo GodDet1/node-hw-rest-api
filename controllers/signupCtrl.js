@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { RequestError } = require('../helpers');
 const { authService } = require('../services');
 const { getIdFromAuth } = require('../helpers');
-const { saveToken, getUserById } = require('../services/authService');
+const { saveToken, getUserById, setAvatar } = require('../services/authService');
 const gravatar = require('gravatar');
 
 const saltRounds = process.env.SALT_ROUNDS;
@@ -20,7 +20,7 @@ const ctrlSingup = async (req, res) => {
     password: hashedPassword,
   });
 
-  res.status(201).json({ user: { email, subscription, avatarURL } });
+  return res.status(201).json({ user: { email, subscription, avatarURL } });
 };
 
 const ctrlLogin = async (req, res) => {
@@ -41,7 +41,7 @@ const ctrlLogin = async (req, res) => {
 
   const user = await authService.saveToken(data.id, token);
 
-  res.json({ user, token });
+  return res.json({ user, token });
 };
 
 const ctrlLogout = async (req, res) => {
@@ -52,13 +52,12 @@ const ctrlLogout = async (req, res) => {
   const id = getIdFromAuth(req.headers.authorization);
 
   const data = await saveToken(id, null);
-  console.log(data);
 
   if (!data.email) {
     throw RequestError(401);
   }
 
-  res.status(204).json();
+  return res.status(204).json();
 };
 
 const ctrlCurrent = async (req, res) => {
@@ -73,7 +72,18 @@ const ctrlCurrent = async (req, res) => {
     throw RequestError(401, 'Not authorized');
   }
 
-  res.status(200).json({ email, subscription });
+  return res.status(200).json({ email, subscription });
 };
 
-module.exports = { ctrlSingup, ctrlLogin, ctrlLogout, ctrlCurrent };
+const ctrlAvatar = async (req, res) => {
+  const avatarName = req.avatarName;
+
+  const avatarURL = `${process.env.AVATAR_BASIC_URL}/${avatarName}`;
+
+  const id = getIdFromAuth(req.headers.authorization);
+
+  await setAvatar(id, avatarURL);
+  return res.json({ avatarURL });
+};
+
+module.exports = { ctrlSingup, ctrlLogin, ctrlLogout, ctrlCurrent, ctrlAvatar };
