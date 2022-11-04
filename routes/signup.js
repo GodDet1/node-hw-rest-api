@@ -2,7 +2,15 @@ const express = require('express');
 const router = express.Router();
 
 const {
-  userControllers: { ctrlSingup, ctrlLogin, ctrlLogout, ctrlCurrent, ctrlAvatar },
+  userControllers: {
+    ctrlSingup,
+    ctrlLogin,
+    ctrlLogout,
+    ctrlCurrent,
+    ctrlAvatar,
+    ctrlVerify,
+    resendVerificationEmail,
+  },
 } = require('../controllers');
 
 const { assyncWrapper } = require('../helpers');
@@ -20,5 +28,7 @@ router.patch(
 );
 router.get('/logout', assyncWrapper(ctrlLogout));
 router.get('/current', assyncWrapper(ctrlCurrent));
+router.get('/verify/:verificationToken', assyncWrapper(ctrlVerify));
+router.post('/verify/', assyncWrapper(resendVerificationEmail));
 
 module.exports = router;

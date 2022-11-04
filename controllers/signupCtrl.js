@@ -3,22 +3,37 @@ const jwt = require('jsonwebtoken');
 const { RequestError } = require('../helpers');
 const { authService } = require('../services');
 const { getIdFromAuth } = require('../helpers');
-const { saveToken, getUserById, setAvatar } = require('../services/authService');
+const {
+  saveToken,
+  getUserByEmail,
+  getUserById,
+  setAvatar,
+  userIdByVerificationToken,
+  changeVerificationStatus,
+} = require('../services/authService');
 const gravatar = require('gravatar');
+const { v4: uuidv4 } = require('uuid');
+const transportMail = require('../helpers/emailConnect');
+const verificationEmailTemplate = require('../helpers/emails/verificationEmail');
 
-const saltRounds = process.env.SALT_ROUNDS;
-const secretJWT = process.env.SECRET_JWT;
+const { SALT_ROUNDS, SECRET_JWT } = process.env;
 
 const ctrlSingup = async (req, res) => {
   const { email, password } = req.body;
 
   const avatarURL = gravatar.url(email);
-  const hashedPassword = await bcrypt.hash(password, +saltRounds);
+  const hashedPassword = await bcrypt.hash(password, +SALT_ROUNDS);
+  const verificationToken = uuidv4();
   const { subscription } = await authService.saveUser({
     email,
     avatarURL,
     password: hashedPassword,
+    verificationToken,
   });
+
+  const mail = verificationEmailTemplate(email, verificationToken);
+
+  transportMail.sendMail(mail);
 
   return res.status(201).json({ user: { email, subscription, avatarURL } });
 };
@@ -37,7 +52,7 @@ const ctrlLogin = async (req, res) => {
     throw RequestError(401, 'Email or password is wrong');
   }
 
-  const token = jwt.sign({ id: data.id }, secretJWT);
+  const token = jwt.sign({ id: data.id }, SECRET_JWT);
 
   const user = await authService.saveToken(data.id, token);
 
@@ -86,4 +101,51 @@ const ctrlAvatar = async (req, res) => {
   return res.json({ avatarURL });
 };
 
-module.exports = { ctrlSingup, ctrlLogin, ctrlLogout, ctrlCurrent, ctrlAvatar };
+const ctrlVerify = async (req, res) => {
+  const token = req.params.verificationToken;
+
+  const id = await userIdByVerificationToken(token);
+
+  if (!id) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  await changeVerificationStatus(id);
+
+  return res.status(200).json({ message: 'Verification successful' });
+};
+
+const resendVerificationEmail = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Missing required field email' });
+  }
+
+  const [user] = await getUserByEmail(email);
+
+  if (!user) {
+    return res.status(400).json({ message: 'No user with this email' });
+  }
+
+  if (user.verify) {
+    return res.status(400).json({ message: 'Verification has already been passed' });
+  }
+
+  const mail = verificationEmailTemplate(email, user.verificationToken);
+
+  transportMail.sendMail(mail);
+
+  res.status(200).json({ message: 'Verification email sent' });
+};
+
+module.exports = {
+  ctrlSingup,
+  ctrlLogin,
+  ctrlLogout,
+  ctrlCurrent,
+  ctrlAvatar,
+  ctrlVerify,
+  changeVerificationStatus,
+  resendVerificationEmail,
+};
