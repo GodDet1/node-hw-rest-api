@@ -13,4 +13,23 @@ const saveToken = async (id, token) =>
   await User.findByIdAndUpdate(id, { token }).select('email subscription');
 
 const setAvatar = async (id, avatarURL) => await User.findByIdAndUpdate(id, { avatarURL });
-module.exports = { saveUser, getUserByEmail, saveToken, getUserById, setAvatar };
+
+const userIdByVerificationToken = async verifyId => {
+  const user = await User.findOne({ verificationToken: verifyId });
+  console.log(user);
+  return user?.id ? user.id : null;
+};
+
+const changeVerificationStatus = async id => {
+  await User.findByIdAndUpdate(id, { verificationToken: null, verify: true });
+};
+
+module.exports = {
+  saveUser,
+  getUserByEmail,
+  saveToken,
+  getUserById,
+  setAvatar,
+  userIdByVerificationToken,
+  changeVerificationStatus,
+};
